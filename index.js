@@ -1,6 +1,10 @@
 const express = require('express');
 const cors = require('cors');
-const {MongoClient,ServerApiVersion, ObjectId} = require('mongodb');
+const {
+          MongoClient,
+          ServerApiVersion,
+          ObjectId
+} = require('mongodb');
 require('dotenv').config();
 const app = express();
 const port = process.env.PORT || 5000;
@@ -24,19 +28,48 @@ const client = new MongoClient(uri, {
 async function run() {
           try {
                     // Connect the client to the server	(optional starting in v4.7)
-                    await client.connect();
+                    // await client.connect();
 
                     const toysCollection = client.db('toyCars').collection('allToys');
 
-                    app.get('/toys',async(req,res)=>{
+                    const indexKeys = {
+                              toyName: 1,
+                    };
+                    const indexOptions = {
+                              name: 'toyName'
+                    }
+
+                    const result = await toysCollection.createIndex(indexKeys, indexOptions)
+
+                    app.get('/toySearch/:text', async (req, res) => {
+                              const searchText = req.params.text;
+                              const result = await toysCollection.find({
+                                        $or: [{
+                                                  toyName: {
+                                                            $regex: searchText,
+                                                            $options: 'i'
+                                                  }
+                                        }]
+                              }).toArray();
+
+                              res.send(result);
+                    })
+
+
+                    app.get('/toys', async (req, res) => {
                               const cursor = toysCollection.find();
                               const result = await cursor.toArray();
                               res.send(result)
                     })
 
-                    app.get('/toys/:id',async(req,res)=>{
+                    app.get('/toys/:id', async (req, res) => {
                               const id = req.params.id;
-                              const query = {_id: new ObjectId(id)}
+                              const query = {
+                                        _id: new ObjectId(id)
+                              }
+                              const options = {
+                                        projection: {}
+                              }
                               const result = await toysCollection.findOne(query)
                               res.send(result)
                     })
